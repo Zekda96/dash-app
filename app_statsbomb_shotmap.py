@@ -73,18 +73,38 @@ def update_scatter(vals):
     pitch = Pitch()
     fig = pitch.plot_pitch(show=False)
     fig.update_layout(title_text='Pass map')
+
     for val in vals:
         dff = df[df['shot_outcome'] == val]
-        fig = fig.add_scatter(x=dff['x'], y=dff['y'],
-                              name=f'{val}',
-                              mode="markers",
-                              marker=dict(
-                                  size=14,
-                                  color='rgba(135, 206, 250, 1)',
-                                  line_width=3,
-                                  line_color='black'
-                              )
-                              )
+        for i, shot in enumerate(dff.iterrows()):
+            shot = shot[1]
+            if i == 0:
+                fig = fig.add_scatter(x=[shot['x'], shot['end_x']],
+                                      y=[shot['y'], shot['end_y']],
+                                      name=f'{val}',
+                                      mode="lines+markers",
+                                      legendgroup=f'{val}',
+                                      marker=dict(
+                                          size=[14, 0],
+                                          color='rgba(135, 206, 250, 1)',
+                                          line_width=3,
+                                          line_color='black'
+                                      )
+                                      )
+            else:
+                fig = fig.add_scatter(x=[shot['x'], shot['end_x']],
+                                      y=[shot['y'], shot['end_y']],
+                                      name=f'{val}',
+                                      mode="lines+markers",
+                                      legendgroup=f'{val}',
+                                      showlegend=False,
+                                      marker=dict(
+                                          size=[14, 0],
+                                          color='rgba(135, 206, 250, 1)',
+                                          line_width=3,
+                                          line_color='black'
+                                      )
+                                      )
 
     # Style Goals
     fig.update_traces(selector=dict(type="scatter", name='Goal'),
