@@ -79,42 +79,32 @@ def update_scatter(vals):
     pitch = Pitch()
     fig = pitch.plot_pitch(show=False)
     fig.update_layout(title_text='Pass map')
+    #fig.update_traces(showlegend=False)
 
+    # Iterate over list of shot types
     for val in vals:
         dff = df[df['shot_outcome'] == val]
         for i, shot in enumerate(dff.iterrows()):
             shot = shot[1]
+            fig = fig.add_scatter(x=[shot['x'], shot['end_x']],
+                                  y=[shot['y'], shot['end_y']],
+                                  name=val,
+                                  mode="lines+markers",
+                                  legendgroup=val,
+                                  customdata=np.stack([shot[['shot_statsbomb_xg', 'shot_body_part',
+                                                             'timestamp', 'period',
+                                                             'player', 'team']]]),
+                                  hovertemplate='<b>Team</b>: %{customdata[5]}<br>' +
+                                                '<b>Player</b>: %{customdata[4]}<br>' +
+                                                '<b>xG</b>: %{customdata[0]:.2f}<br>' +
+                                                '<b>Body Part</b>: %{customdata[1]}<br>' +
+                                                '<b>Min</b>: %{customdata[2]} (%{customdata[3]}° Half)<br>' +
+                                                '<extra></extra>',
+                                  showlegend=False
+                                  )
+            # Only add label to first marker of each shot type
             if i == 0:
-                fig = fig.add_scatter(x=[shot['x'], shot['end_x']],
-                                      y=[shot['y'], shot['end_y']],
-                                      name=val,
-                                      mode="lines+markers",
-                                      legendgroup=val,
-                                      customdata=np.stack([shot[['shot_statsbomb_xg', 'shot_body_part',
-                                                                 'timestamp', 'period',
-                                                                 'player']]]),
-                                      hovertemplate='<b>Player</b>: %{customdata[4]}<br>' +
-                                                    '<b>xG</b>: %{customdata[0]:.2f}<br>' +
-                                                    '<b>Body Part</b>: %{customdata[1]}<br>' +
-                                                    '<b>Min</b>: %{customdata[2]} (%{customdata[3]}° Half)<br>' +
-                                                    '<extra></extra>',
-                                      )
-            else:
-                fig = fig.add_scatter(x=[shot['x'], shot['end_x']],
-                                      y=[shot['y'], shot['end_y']],
-                                      name=val,
-                                      mode="lines+markers",
-                                      legendgroup=val,
-                                      customdata=np.stack([shot[['shot_statsbomb_xg', 'shot_body_part',
-                                                                 'timestamp', 'period',
-                                                                 'player']]]),
-                                      hovertemplate='<b>Player</b>: %{customdata[4]}<br>' +
-                                                    '<b>xG</b>: %{customdata[0]:.2f}<br>' +
-                                                    '<b>Body Part</b>: %{customdata[1]}<br>' +
-                                                    '<b>Min</b>: %{customdata[2]} (%{customdata[3]}° Half)<br>' +
-                                                    '<extra></extra>',
-                                      showlegend=False
-                                      )
+                fig.update_traces(showlegend=True, selector=dict(name=val))
 
     # General Scatter properties
     fig.update_traces(selector=dict(type="scatter"),
