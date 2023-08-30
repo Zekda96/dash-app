@@ -4,7 +4,7 @@ import dash
 from dash import dcc, html
 from dash.dependencies import Input, Output
 import pandas as pd
-from statsbombpy import sb
+import numpy as np
 #
 from pitchly import Pitch
 import statsbomb_invert as sbi
@@ -38,6 +38,12 @@ shots_df['y'] = sbi.convert_y(shots_df['y'])
 
 shots_df['end_x'] = sbi.convert_x(shots_df['end_x'])
 shots_df['end_y'] = sbi.convert_y(shots_df['end_y'])
+
+# Edit timestamp
+t = shots_df['timestamp'].str.split(':', expand=True)[[1, 2]]
+m = t[1]
+s = t[2].str.split('.', expand=True)[0]
+shots_df['timestamp'] = pd.DataFrame(m + ':' + s)
 
 
 # --------------------------------DASH APP--------------------------------------
@@ -81,41 +87,62 @@ def update_scatter(vals):
             if i == 0:
                 fig = fig.add_scatter(x=[shot['x'], shot['end_x']],
                                       y=[shot['y'], shot['end_y']],
-                                      name=f'{val}',
+                                      name=val,
                                       mode="lines+markers",
-                                      legendgroup=f'{val}',
-                                      marker=dict(
-                                          size=[14, 0],
-                                          color='rgba(135, 206, 250, 1)',
-                                          line_width=3,
-                                          line_color='black'
-                                      )
+                                      legendgroup=val,
+                                      customdata=np.stack([shot[['shot_statsbomb_xg', 'shot_body_part',
+                                                                 'timestamp', 'period',
+                                                                 'player']]]),
+                                      hovertemplate='<b>Player</b>: %{customdata[4]}<br>' +
+                                                    '<b>xG</b>: %{customdata[0]:.2f}<br>' +
+                                                    '<b>Body Part</b>: %{customdata[1]}<br>' +
+                                                    '<b>Min</b>: %{customdata[2]} (%{customdata[3]}° Half)<br>' +
+                                                    '<extra></extra>',
                                       )
             else:
                 fig = fig.add_scatter(x=[shot['x'], shot['end_x']],
                                       y=[shot['y'], shot['end_y']],
-                                      name=f'{val}',
+                                      name=val,
                                       mode="lines+markers",
-                                      legendgroup=f'{val}',
-                                      showlegend=False,
-                                      marker=dict(
-                                          size=[14, 0],
-                                          color='rgba(135, 206, 250, 1)',
-                                          line_width=3,
-                                          line_color='black'
-                                      )
+                                      legendgroup=val,
+                                      customdata=np.stack([shot[['shot_statsbomb_xg', 'shot_body_part',
+                                                                 'timestamp', 'period',
+                                                                 'player']]]),
+                                      hovertemplate='<b>Player</b>: %{customdata[4]}<br>' +
+                                                    '<b>xG</b>: %{customdata[0]:.2f}<br>' +
+                                                    '<b>Body Part</b>: %{customdata[1]}<br>' +
+                                                    '<b>Min</b>: %{customdata[2]} (%{customdata[3]}° Half)<br>' +
+                                                    '<extra></extra>',
+                                      showlegend=False
                                       )
 
-    # Style Goals
-    fig.update_traces(selector=dict(type="scatter", name='Goal'),
-                      marker=dict(color='red',
-                                  ),
+    # General Scatter properties
+    fig.update_traces(selector=dict(type="scatter"),
+                      patch=dict(
+                          marker=dict(size=[18, 0],
+                                      color='rgba(135, 206, 250, 1)',
+                                      line_color='black'
+                                      ),
+                          line=dict(dash="dot",
+                                    color='black',
+                                    width=4
+                                    )
+                      )
                       )
 
-    # Style Off Target
+    # Style - Goals
+    fig.update_traces(selector=dict(type="scatter", name='Goal'),
+                      patch=dict(
+                          marker=dict(color='red',
+                                      ),
+                          line=dict(color='red'
+                                    )
+                      )
+                      )
+
+    # Style - Off Target
     fig.update_traces(selector=dict(type="scatter", name='Off T'),
-                      marker=dict(color='red',
-                                  symbol='x-thin'
+                      marker=dict(symbol='x-thin'
                                   ),
                       )
 
