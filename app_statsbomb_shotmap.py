@@ -3,11 +3,20 @@ import plotly.graph_objects as go
 import dash
 from dash import dcc, html
 from dash.dependencies import Input, Output
+import dash_bootstrap_components as dbc
 import pandas as pd
 import numpy as np
 #
 from pitchly import Pitch
 import statsbomb_invert as sbi
+
+
+def SetColor(x):
+    if x == 'Barcelona':
+        return 'red'
+    else:
+        return 'blue'
+
 
 # Read Data
 
@@ -52,21 +61,38 @@ shots_df['timestamp'] = pd.DataFrame(m + ':' + s)
 df = shots_df
 
 # Create the Dash app
-app = dash.Dash(__name__)
+app = dash.Dash(__name__, external_stylesheets=[dbc.themes.SLATE])
 
 # Layout of the app
-app.layout = html.Div([
-    dcc.Checklist(
-        id='scatter-checklist',
-        options=[
-            {'label': 'Goal', 'value': 'Goal'},
-            {'label': 'Post', 'value': 'Post'},
-            {'label': 'Off Target', 'value': 'Off T'}
-        ],
-        value=['Goal'],
-        inline=True
-    ),
-    dcc.Graph(id='scatter-plot')
+app.layout = dbc.Container([
+
+    dbc.Row([
+        dbc.Col([
+            html.H1("Event Map", className='text-secondary text-center')
+
+        ], width=12)
+    ]),
+
+    dbc.Row([
+        dbc.Col([
+            dcc.Checklist(
+                id='scatter-checklist',
+                options=[
+                    {'label': 'Goal', 'value': 'Goal'},
+                    {'label': 'Post', 'value': 'Post'},
+                    {'label': 'Off Target', 'value': 'Off T'}
+                ],
+                value=['Goal'],
+                inline=True
+            )
+        ], width=12)
+    ]),
+
+    dbc.Row([
+        dbc.Col([
+            dcc.Graph(id='scatter-plot')
+            ], width=12)
+        ])
 ])
 
 
@@ -100,6 +126,7 @@ def update_scatter(vals):
                                                 '<b>Body Part</b>: %{customdata[1]}<br>' +
                                                 '<b>Min</b>: %{customdata[2]} (%{customdata[3]}° Half)<br>' +
                                                 '<extra></extra>',
+                                  marker_color=list(map(SetColor, [shot['team']])),
                                   showlegend=False
                                   )
             # Only add label to first marker of each shot type
@@ -110,7 +137,7 @@ def update_scatter(vals):
     fig.update_traces(selector=dict(type="scatter"),
                       patch=dict(
                           marker=dict(size=[18, 0],
-                                      color='rgba(135, 206, 250, 1)',
+                                      #color='rgba(135, 206, 250, 1)',
                                       line_color='black'
                                       ),
                           line=dict(dash="dot",
@@ -119,20 +146,33 @@ def update_scatter(vals):
                                     )
                       )
                       )
+    # Scatter properties by team
+    # fig.update_traces(selector=dict(name="scatter"),
+    #                   patch=dict(
+    #                       marker=dict(size=[18, 0],
+    #                                   color='rgba(135, 206, 250, 1)',
+    #                                   line_color='black'
+    #                                   ),
+    #                       line=dict(dash="dot",
+    #                                 color='black',
+    #                                 width=4
+    #                                 )
+    #                   )
+    #                   )
 
     # Style - Goals
-    fig.update_traces(selector=dict(type="scatter", name='Goal'),
-                      patch=dict(
-                          marker=dict(color='red',
-                                      ),
-                          line=dict(color='red'
-                                    )
-                      )
-                      )
+    # fig.update_traces(selector=dict(type="scatter", name='Goal'),
+    #                   patch=dict(
+    #                       marker=dict(color='red',
+    #                                   ),
+    #                       line=dict(color='red'
+    #                                 )
+    #                   )
+    #                   )
 
     # Style - Off Target
     fig.update_traces(selector=dict(type="scatter", name='Off T'),
-                      marker=dict(symbol='x-thin'
+                      marker=dict(symbol='x'
                                   ),
                       )
 
