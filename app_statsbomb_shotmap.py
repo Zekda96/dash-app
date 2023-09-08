@@ -90,8 +90,19 @@ app.layout = dbc.Container([
 
     dbc.Row([
         dbc.Col([
+            dcc.Checklist(
+                id='team1-checklist',
+                options=[
+                    {'label': 'Jugador1', 'value': 'Jugador1'},
+                    {'label': 'Jugador2', 'value': 'Jugador2'},
+                ],
+                value=['Jugador2'],
+                inline=False
+            )
+        ], width=1),
+        dbc.Col([
             dcc.Graph(id='scatter-plot')
-            ], width=12)
+            ], width=11)
         ])
 ])
 
