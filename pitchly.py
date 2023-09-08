@@ -32,12 +32,12 @@ class Pitch:
         self.centre = self.point(0.0, 0.0)
 
     def get_layout(
-        self,
-        time=None,
-        frameID=None,
-        frame_range=None,
-        title=None,
-        pitch_control=False,
+            self,
+            time=None,
+            frameID=None,
+            frame_range=None,
+            title=None,
+            pitch_control=False,
     ):
         if pitch_control:
             field_markings_color = prm.pc["field_markings_color"]
@@ -81,7 +81,6 @@ class Pitch:
         shapes.extend([mid_circle, mid_line, mid_point])
 
         for s in self.signs:
-
             # plot pitch boundary
             boundary1 = dict(
                 type="line",
@@ -240,7 +239,6 @@ class Pitch:
         #     layout["title_text"] = title
 
         return layout
-
 
     def plot_pitch(self, show=True):
         """Just generates an empty pitch.
