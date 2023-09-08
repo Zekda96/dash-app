@@ -1,3 +1,4 @@
+# Scrape a single match from WhoScored and save it as csv
 import soccerdata as sd
 import os
 import pandas as pd
