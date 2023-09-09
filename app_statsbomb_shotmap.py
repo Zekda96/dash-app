@@ -8,7 +8,7 @@ import pandas as pd
 import numpy as np
 #
 from pitchly import Pitch
-import statsbomb_invert as sbi
+import libfutdata as lfd
 
 
 def SetColor(x):
@@ -42,11 +42,11 @@ shots_df['end_z'] = pd.to_numeric(lis[2].str.strip(']'))
 # shots_df[['end_x', 'end_y', 'end_z']] = shots_df['shot_end_location'].apply(pd.Series)
 
 # Convert from statsbomb yards to meters
-shots_df['x'] = sbi.convert_x(shots_df['x'])
-shots_df['y'] = sbi.convert_y(shots_df['y'])
+shots_df['x'] = lfd.convert_x(shots_df['x'])
+shots_df['y'] = lfd.convert_y(shots_df['y'])
 
-shots_df['end_x'] = sbi.convert_x(shots_df['end_x'])
-shots_df['end_y'] = sbi.convert_y(shots_df['end_y'])
+shots_df['end_x'] = lfd.convert_x(shots_df['end_x'])
+shots_df['end_y'] = lfd.convert_y(shots_df['end_y'])
 
 # Edit timestamp
 t = shots_df['timestamp'].str.split(':', expand=True)[[1, 2]]
