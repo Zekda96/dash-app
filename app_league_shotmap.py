@@ -24,18 +24,18 @@ df = pd.read_csv('ENG-Premier League/20-21/20-21.csv')
 
 # pass_df = new_df[new_df['type'] == 'Pass']
 # plot_df = pass_df[(pass_df['player'] == 'Andy Robertson') & (pass_df['game_id'] == 1485208)]
-plot_df = df[df['team'] == 'Man Utd']
-plot_df = plot_df[plot_df['player'].notna()]
+# plot_df = df[df['team'] == 'Man Utd']
+plot_df = df[df['player'].notna()]
 
 plot_df.loc[plot_df['type'] == 'Goal', 'end_x'] = 100.0
 plot_df.loc[plot_df['type'] == 'Goal', 'end_y'] = plot_df.loc[plot_df['type'] == 'Goal', 'goal_mouth_y']
 
 # Convert WhoScored coordinates to pitchly coordinates
-plot_df['x'] = lfd.convert_x(plot_df['x'], max_x=100)
-plot_df['y'] = lfd.convert_y(plot_df['y'], max_y=100, invert_y=False)
+plot_df.loc[:, 'x'] = lfd.convert_x(plot_df['x'], max_x=100)
+plot_df.loc[:, 'y'] = lfd.convert_y(plot_df['y'], max_y=100, invert_y=False)
 
-plot_df['end_x'] = lfd.convert_x(plot_df['end_x'], max_x=100)
-plot_df['end_y'] = lfd.convert_y(plot_df['end_y'], max_y=100, invert_y=False)
+plot_df.loc[:, 'end_x'] = lfd.convert_x(plot_df['end_x'], max_x=100)
+plot_df.loc[:, 'end_y'] = lfd.convert_y(plot_df['end_y'], max_y=100, invert_y=False)
 
 # --------------------------------DASH APP--------------------------------------
 # Plug data for demonstration
@@ -54,20 +54,36 @@ event_checklist = html.Div([
         ],
         value=['Goal'],
         multi=True,
-        className='text-primary my-2'
-        # className='btn btn-primary text-white mx-2 my-1 rounded-3',
+        className='text-primary mb-2 rounded-3',
     )])
 
-player_checklist = dcc.Dropdown(
-    id='player-checklist',
-    options=[
-        {'label': x, 'value': x}
-        for x in df.player.unique()
-    ],
-    value=['Marcus Rashford'],
-    multi=True,
-    className='text-primary mx-2 my-1 py-1 rounded-3',
-)
+player_checklist = html.Div([
+    dcc.Dropdown(
+        id='player-checklist',
+        options=[
+            {'label': x, 'value': x}
+            for x in df.player.unique()
+        ],
+        value=['Marcus Rashford'],
+        multi=True,
+        className='text-primary mb-2 rounded-3',
+    )
+])
+
+team_checklist = html.Div([
+    dcc.Dropdown(
+        id='team-checklist',
+        options=[
+            {'label': x, 'value': x}
+            for x in df.team.unique()
+        ],
+        value='Man Utd',
+        clearable=False,
+        placeholder="Select a city",
+        className='text-black mb-2 rounded-3',
+
+    )
+])
 
 # ------------------------------ LAYOUT -----------------------------------
 
@@ -76,16 +92,9 @@ app.layout = dbc.Container([
 
     dbc.Row([
         dbc.Col([
-            html.H1("Event Map", className='text-white text-center')
+            html.H1("EPL 20/21 - Event Map", className='text-white text-center')
         ], width=12)
     ]),
-
-    dbc.Row([
-        dbc.Col([
-            # event_checklist
-        ], width=2)
-
-    ], justify='center'),
 
     dbc.Row([
 
@@ -96,48 +105,46 @@ app.layout = dbc.Container([
 
                     dbc.Col([
                         dcc.Graph(id='scatter-plot')
-                    ], width=8),
+                    ], width=9),
 
                     dbc.Col([
-                        html.Div('Choose Team'),
-
-                        html.Div('Choose Player'),
+                        html.Div('Select Team'),
+                        team_checklist,
+                        html.Div('Select Players'),
                         player_checklist,
-                        html.Div('Choose Event'),
+                        html.Div('Select Events'),
                         event_checklist
-                    ], width=4, align='center')
 
-                ], justify='start')
+                    ], width=3, align='center')
+
+                ], justify='center')
 
             ], className='bg-primary rounded-3 p-5')
         ], width=12),
 
-        dbc.Col([
-            dbc.Container([
-                # player_checklist,
-                # event_checklist
-            ], className='bg-white rounded-3')
-        ], width=3)
-
-    ], justify='center', align='center', className='blue'),
+    ], justify='center', align='center', className='bg-blue'),
 
 ], className='bg-secondary',
-    fluid=True
+    fluid=True,
+    style={'height': '100vh'}
 )
 
+
+# ------------------------------ CALLBACKS -----------------------------------
 
 # Callback to update the scatter plot based on checklist selection
 @app.callback(
     Output('scatter-plot', 'figure'),
     [Input('event-checklist', 'value'),
-     Input('player-checklist', 'value')]
+     Input('player-checklist', 'value'),
+     Input('team-checklist', 'value'), ]
 )
-def update_scatter(vals, players):
+def update_scatter(vals, players, team):
     pitch = Pitch()
     fig = pitch.plot_pitch(show=False)
     wh_ratio = 1000 / 700
     w = 400
-    fig.update_layout(title_text='Pass map',
+    fig.update_layout(title_text='Event map',
                       autosize=True,
                       title_automargin=True,
                       # width=w, height=w/wh_ratio,
@@ -145,7 +152,8 @@ def update_scatter(vals, players):
     # fig.update_traces(showlegend=False)
 
     # Iterate over list of shot types
-    df_f = df[df['player'].isin(players)]
+    df_f = df[df['team'] == team]
+    df_f = df_f[df_f['player'].isin(players)]
     for val in vals:
         dff = df_f[df_f['type'] == val]
         for i, event in enumerate(dff.iterrows()):
@@ -165,11 +173,39 @@ def update_scatter(vals, players):
             # Only add label to first marker of each shot type
             if i == 0:
                 fig.update_traces(showlegend=True, selector=dict(name=val))
-
-    return fig
-
     # Set y-axis range
     # fig.update_yaxes()
+    return fig
+
+
+# Update dropdown options
+@app.callback(
+    Output("player-checklist", "options"),
+    Input("team-checklist", "value")
+)
+def update_options(team):
+    options = [
+        {'label': x, 'value': x}
+        for x in df.loc[df['team'] == team, 'player'].unique()
+    ],
+    return options[0]
+
+
+@app.callback(
+    Output("player-checklist", "value"),
+    Input("team-checklist", "value")
+)
+def update_value(team):
+    players_list = df.loc[df["team"] == team, "player"].unique()
+    max_goalscorer = ''
+    max_goals = 0
+    for player in players_list:
+        goals = len(df[(df['type'] == 'Goal') & (df['player'] == player)])
+        if goals > max_goals:
+            max_goals = goals
+            max_goalscorer = player
+    default_player = max_goalscorer
+    return [default_player]
 
 
 # Run the app
