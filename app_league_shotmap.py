@@ -46,6 +46,7 @@ app = dash.Dash(__name__, external_stylesheets=[dbc.themes.SLATE])
 # ------------------------------ COMPONENTS -----------------------------------
 
 event_checklist = html.Div([
+    html.Div('Select Events', className='text-white'),
     dcc.Dropdown(
         id='event-checklist',
         options=[
@@ -58,19 +59,20 @@ event_checklist = html.Div([
     )])
 
 player_checklist = html.Div([
+    html.Div('Select Players', className='text-white'),
     dcc.Dropdown(
         id='player-checklist',
         options=[
             {'label': x, 'value': x}
             for x in df.player.unique()
         ],
-        value=['Marcus Rashford'],
         multi=True,
         className='text-primary mb-2 rounded-3',
     )
 ])
 
 team_checklist = html.Div([
+    html.Div('Select Team', className='text-white'),
     dcc.Dropdown(
         id='team-checklist',
         options=[
@@ -108,13 +110,9 @@ app.layout = dbc.Container([
                     ], width=9),
 
                     dbc.Col([
-                        html.Div('Select Team'),
                         team_checklist,
-                        html.Div('Select Players'),
                         player_checklist,
-                        html.Div('Select Events'),
                         event_checklist
-
                     ], width=3, align='center')
 
                 ], justify='center')
