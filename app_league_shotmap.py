@@ -53,7 +53,7 @@ event_checklist = html.Div([
             {'label': x, 'value': x}
             for x in df.type.unique()
         ],
-        value=['Goal'],
+        value=['Goal', 'MissedShot', 'SavedShot'],
         multi=True,
         className='text-primary mb-2 rounded-3',
     )])
@@ -77,13 +77,26 @@ team_checklist = html.Div([
         id='team-checklist',
         options=[
             {'label': x, 'value': x}
-            for x in df.team.unique()
+            for x in df.sort_values('team').team.unique()
         ],
         value='Man Utd',
         clearable=False,
         placeholder="Select a city",
         className='text-black mb-2 rounded-3',
 
+    )
+])
+
+team_radioitems = html.Div([
+    html.Div('Select Team', className='text-white'),
+    dcc.RadioItems(
+        id='team-checklist',
+        options=[
+            {'label': x, 'value': x}
+            for x in df.team.unique()
+        ],
+        value='Man Utd',
+        className='text-black mb-2 rounded-3',
     )
 ])
 
@@ -101,30 +114,46 @@ app.layout = dbc.Container([
     dbc.Row([
 
         dbc.Col([
+
             dbc.Container([
 
                 dbc.Row([
 
                     dbc.Col([
-                        dcc.Graph(id='scatter-plot')
-                    ], width=9),
+
+                        html.Center(
+                            dcc.Graph(id='scatter-plot',
+                                      #style={'paddingLeft': '50%'}
+                                      )
+                        )
+
+                    ], width=12),
+
+                ], justify='center', className='bg-red'),
+
+                dbc.Row([
 
                     dbc.Col([
-                        team_checklist,
                         player_checklist,
                         event_checklist
-                    ], width=3, align='center')
+                    ], width=3, align='top'),
 
-                ], justify='center')
+                    dbc.Col([
+                        team_checklist
+                    ], width=3, align='top')
+
+                ])
 
             ], className='bg-primary rounded-3 p-5')
+
         ], width=12),
 
     ], justify='center', align='center', className='bg-blue'),
 
-], className='bg-secondary',
+],
+    className='bg-secondary',
     fluid=True,
-    style={'height': '100vh'}
+    #style={'height': '100vh'}
 )
 
 
@@ -141,11 +170,10 @@ def update_scatter(vals, players, team):
     pitch = Pitch()
     fig = pitch.plot_pitch(show=False)
     wh_ratio = 1000 / 700
-    w = 400
+    w = 1000
     fig.update_layout(title_text='Event map',
-                      autosize=True,
-                      title_automargin=True,
-                      # width=w, height=w/wh_ratio,
+                      #title_automargin=True,
+                      width=w, height=w/wh_ratio,
                       )
     # fig.update_traces(showlegend=False)
 
@@ -162,10 +190,11 @@ def update_scatter(vals, players, team):
             end_y = event['end_y']
             fig = fig.add_scatter(x=[x, end_x],
                                   y=[y, end_y],
-                                  name=val,
+                                  name=event['player'],
                                   mode="lines+markers",
                                   legendgroup=val,
-                                  marker_color=list(map(SetColor, [event['team']])),
+                                  marker_color=list(map(SetColor, [event['player']])),
+                                  line_color='red', line_dash='dot',
                                   showlegend=False
                                   )
             # Only add label to first marker of each shot type
@@ -182,9 +211,10 @@ def update_scatter(vals, players, team):
     Input("team-checklist", "value")
 )
 def update_options(team):
+    s_df = df.sort_values('player')
     options = [
         {'label': x, 'value': x}
-        for x in df.loc[df['team'] == team, 'player'].unique()
+        for x in s_df.loc[s_df['team'] == team, 'player'].unique()
     ],
     return options[0]
 
@@ -208,4 +238,5 @@ def update_value(team):
 
 # Run the app
 if __name__ == '__main__':
-    app.run_server(debug=True)
+    app.run(debug=True)
+    #app.run()
