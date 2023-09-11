@@ -208,8 +208,8 @@ class Pitch:
             },
             hovermode="closest",
             autosize=True,
-            width=prm.field_width,
-            height=prm.field_height,
+            #width=prm.field_width,
+            #height=prm.field_height,
             plot_bgcolor=field_color,
             xaxis=go.layout.XAxis(
                 range=[-xmax, xmax],
