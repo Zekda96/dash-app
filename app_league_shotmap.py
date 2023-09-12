@@ -12,10 +12,15 @@ import libfutdata as lfd
 
 
 def SetColor(x):
-    if x == 'Barcelona':
+    if x == 'Marcus Rashford':
         return 'red'
     else:
         return 'blue'
+
+
+def get_color(players, player):
+    colors_list = ['red', 'blue', 'orange', 'purple', 'white']
+    return colors_list[players.index(player)]
 
 
 # ------------------------------- READ DATA --------------------------------------
@@ -123,7 +128,7 @@ app.layout = dbc.Container([
 
                         html.Center(
                             dcc.Graph(id='scatter-plot',
-                                      #style={'paddingLeft': '50%'}
+                                      # style={'paddingLeft': '50%'}
                                       )
                         )
 
@@ -153,7 +158,7 @@ app.layout = dbc.Container([
 ],
     className='bg-secondary',
     fluid=True,
-    #style={'height': '100vh'}
+    # style={'height': '100vh'}
 )
 
 
@@ -166,22 +171,26 @@ app.layout = dbc.Container([
      Input('player-checklist', 'value'),
      Input('team-checklist', 'value'), ]
 )
-def update_scatter(vals, players, team):
+def update_scatter(events, players, team):
     pitch = Pitch()
     fig = pitch.plot_pitch(show=False)
     wh_ratio = 1000 / 700
     w = 1000
     fig.update_layout(title_text='Event map',
-                      #title_automargin=True,
-                      width=w, height=w/wh_ratio,
+                      # title_automargin=True,
+                      width=w, height=w / wh_ratio,
                       )
     # fig.update_traces(showlegend=False)
 
     # Iterate over list of shot types
     df_f = df[df['team'] == team]
-    df_f = df_f[df_f['player'].isin(players)]
-    for val in vals:
-        dff = df_f[df_f['type'] == val]
+    # df_f = df_f[df_f['player'].isin(players)]
+    df_f = df_f[df_f['type'].isin(events)]
+
+    for p in players:
+        c = get_color(players, p)
+        # dff = df_f[df_f['type'] == val]
+        dff = df_f[df_f['player'] == p]
         for i, event in enumerate(dff.iterrows()):
             event = event[1]
             x = event['x']
@@ -190,22 +199,24 @@ def update_scatter(vals, players, team):
             end_y = event['end_y']
             fig = fig.add_scatter(x=[x, end_x],
                                   y=[y, end_y],
-                                  name=event['player'],
+                                  name=p,
                                   mode="lines+markers",
-                                  legendgroup=val,
-                                  marker_color=list(map(SetColor, [event['player']])),
-                                  line_color='red', line_dash='dot',
+                                  legendgroup=p,
+                                  # marker_color=list(map(SetColor(df_f['player'.unique()]), [event['player']])),
+                                  # marker_color=get_color(df.player.unique(), event['player']),
+                                  marker_color=c,
+                                  line_color='white', line_dash='dot',
                                   showlegend=False
                                   )
             # Only add label to first marker of each shot type
             if i == 0:
-                fig.update_traces(showlegend=True, selector=dict(name=val))
+                fig.update_traces(showlegend=True, selector=dict(name=p))
     # Set y-axis range
     # fig.update_yaxes()
     return fig
 
 
-# Update dropdown options
+# Update player dropdown options based on team chosen
 @app.callback(
     Output("player-checklist", "options"),
     Input("team-checklist", "value")
@@ -219,24 +230,32 @@ def update_options(team):
     return options[0]
 
 
+# Update player dropdown default value from chosen team top 3 goalscorers (Depending on team chosen)
 @app.callback(
     Output("player-checklist", "value"),
     Input("team-checklist", "value")
 )
 def update_value(team):
     players_list = df.loc[df["team"] == team, "player"].unique()
-    max_goalscorer = ''
-    max_goals = 0
+    max_goalscorer = []
+    sec_gs = []
+    third_gs = []
+    max_goals, sec_goals, thi_goals = [0, 0, 0]
     for player in players_list:
         goals = len(df[(df['type'] == 'Goal') & (df['player'] == player)])
         if goals > max_goals:
             max_goals = goals
             max_goalscorer = player
-    default_player = max_goalscorer
-    return [default_player]
+        elif goals > sec_goals:
+            sec_goals = goals
+            sec_gs = player
+        elif goals > thi_goals:
+            thi_goals = goals
+            third_gs = player
+    return [max_goalscorer, sec_gs, third_gs]
 
 
 # Run the app
 if __name__ == '__main__':
     app.run(debug=True)
-    #app.run()
+    # app.run()
