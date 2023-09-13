@@ -182,37 +182,65 @@ def update_scatter(events, players, team):
                       )
     # fig.update_traces(showlegend=False)
 
-    # Iterate over list of shot types
+    # Filter by team and events
     df_f = df[df['team'] == team]
-    # df_f = df_f[df_f['player'].isin(players)]
     df_f = df_f[df_f['type'].isin(events)]
 
+    # Plot markers by player
     for p in players:
         c = get_color(players, p)
-        # dff = df_f[df_f['type'] == val]
         dff = df_f[df_f['player'] == p]
+        # Iter over all events for selected player
         for i, event in enumerate(dff.iterrows()):
             event = event[1]
             x = event['x']
             y = event['y']
             end_x = event['end_x']
             end_y = event['end_y']
-            fig = fig.add_scatter(x=[x, end_x],
-                                  y=[y, end_y],
-                                  name=p,
-                                  mode="lines+markers",
-                                  legendgroup=p,
-                                  # marker_color=list(map(SetColor(df_f['player'.unique()]), [event['player']])),
-                                  # marker_color=get_color(df.player.unique(), event['player']),
-                                  marker_color=c,
-                                  line_color='white', line_dash='dot',
-                                  showlegend=False
-                                  )
+            if event['type'] == 'Goal':
+                fig = fig.add_scatter(x=[x, end_x],
+                                      y=[y, end_y],
+                                      name=p,
+                                      mode="lines+markers",
+                                      legendgroup=p,
+                                      customdata=np.stack([event['type']]),
+                                      # Styling
+                                      marker_size=8, marker_color=c,
+                                      # marker_symbol='x',
+                                      # marker_opacity=0.5,
+                                      # opacity=0.5,
+                                      line_color='white', line_dash='dot',
+                                      showlegend=False
+                                      )
+            else:
+                fig = fig.add_scatter(x=[x, end_x],
+                                      y=[y, end_y],
+                                      name=p,
+                                      mode="lines+markers",
+                                      legendgroup=p,
+                                      customdata=np.stack([event['type']]),
+                                      # Styling
+                                      marker_size=8, marker_color=c,
+                                      marker_symbol='x',
+                                      # marker_opacity=0.5,
+                                      # opacity=0.5,
+                                      line_color='white', line_dash='dot',
+                                      showlegend=False
+                                      )
             # Only add label to first marker of each shot type
             if i == 0:
-                fig.update_traces(showlegend=True, selector=dict(name=p))
-    # Set y-axis range
-    # fig.update_yaxes()
+                fig.update_traces(showlegend=True, selector=dict(legendgroup=p))
+
+    # Style - Goals
+    # fig.update_traces(selector=dict(type="scatter"),
+    #                   patch=dict(
+    #                       marker=dict(symbol='x',
+    #                                   ),
+    #                       # line=dict(color='red'
+    #                       #           )
+    #                   )
+    #                   )
+
     return fig
 
 
