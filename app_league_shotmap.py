@@ -11,13 +11,6 @@ from pitchly import Pitch
 import libfutdata as lfd
 
 
-def SetColor(x):
-    if x == 'Marcus Rashford':
-        return 'red'
-    else:
-        return 'blue'
-
-
 def get_color(players, player):
     colors_list = ['red', 'blue', 'orange', 'purple', 'white']
     return colors_list[players.index(player)]
@@ -27,23 +20,22 @@ def get_color(players, player):
 
 df = pd.read_csv('ENG-Premier League/20-21/20-21.csv')
 
-# pass_df = new_df[new_df['type'] == 'Pass']
-# plot_df = pass_df[(pass_df['player'] == 'Andy Robertson') & (pass_df['game_id'] == 1485208)]
-# plot_df = df[df['team'] == 'Man Utd']
-plot_df = df[df['player'].notna()]
+# Clean dataframe
+df = df[~df['type'].isin(['Smother', 'ShieldBallOpp', 'Card'])]  # Ignore these events
+plot_df = df[df['player'].notna()]  # Eliminate non-player rows
 
+# Add end coordinates for Goals
 plot_df.loc[plot_df['type'] == 'Goal', 'end_x'] = 100.0
 plot_df.loc[plot_df['type'] == 'Goal', 'end_y'] = plot_df.loc[plot_df['type'] == 'Goal', 'goal_mouth_y']
 
 # Convert WhoScored coordinates to pitchly coordinates
 plot_df.loc[:, 'x'] = lfd.convert_x(plot_df['x'], max_x=100)
 plot_df.loc[:, 'y'] = lfd.convert_y(plot_df['y'], max_y=100, invert_y=False)
-
 plot_df.loc[:, 'end_x'] = lfd.convert_x(plot_df['end_x'], max_x=100)
 plot_df.loc[:, 'end_y'] = lfd.convert_y(plot_df['end_y'], max_y=100, invert_y=False)
 
 # --------------------------------DASH APP--------------------------------------
-# Plug data for demonstration
+# Plug data
 df = plot_df
 
 # Create the Dash app
@@ -56,9 +48,9 @@ event_checklist = html.Div([
         id='event-checklist',
         options=[
             {'label': x, 'value': x}
-            for x in df.type.unique()
+            for x in df.sort_values('type').type.unique()
         ],
-        value=['Goal', 'MissedShot', 'SavedShot'],
+        value=['Goal', 'MissedShots', 'SavedShot', 'ShotOnPost'],
         multi=True,
         className='text-primary mb-2 rounded-3',
     )])
@@ -92,16 +84,20 @@ team_checklist = html.Div([
     )
 ])
 
-team_radioitems = html.Div([
-    html.Div('Select Team', className='text-white'),
-    dcc.RadioItems(
-        id='team-checklist',
-        options=[
-            {'label': x, 'value': x}
-            for x in df.team.unique()
-        ],
-        value='Man Utd',
-        className='text-black mb-2 rounded-3',
+plot_filter_checklist = html.Div([
+    html.Div('Choose graph', className='text-white'),
+    dbc.Container([
+        dcc.Checklist(
+            id='plot-filter-checklist',
+            options=[
+                {'label': 'Scatter', 'value': 'plot_dots'},
+                {'label': 'Heatmap', 'value': 'plot_hm'},
+            ],
+            value=['plot_dots', 'plot_hm'],
+            className='text-black',
+            inputClassName='px-2'
+        )
+    ], className='bg-white mb-2 rounded-3'
     )
 ])
 
@@ -134,17 +130,18 @@ app.layout = dbc.Container([
 
                     ], width=12),
 
-                ], justify='center', className='bg-red'),
+                ], justify='center'),
 
                 dbc.Row([
 
                     dbc.Col([
                         player_checklist,
-                        event_checklist
+                        event_checklist,
                     ], width=3, align='top'),
 
                     dbc.Col([
-                        team_checklist
+                        team_checklist,
+                        plot_filter_checklist,
                     ], width=3, align='top')
 
                 ])
@@ -153,7 +150,7 @@ app.layout = dbc.Container([
 
         ], width=12),
 
-    ], justify='center', align='center', className='bg-blue'),
+    ], justify='center', align='center'),
 
 ],
     className='bg-secondary',
@@ -162,86 +159,7 @@ app.layout = dbc.Container([
 )
 
 
-# ------------------------------ CALLBACKS -----------------------------------
-
-# Callback to update the scatter plot based on checklist selection
-@app.callback(
-    Output('scatter-plot', 'figure'),
-    [Input('event-checklist', 'value'),
-     Input('player-checklist', 'value'),
-     Input('team-checklist', 'value'), ]
-)
-def update_scatter(events, players, team):
-    pitch = Pitch()
-    fig = pitch.plot_pitch(show=False)
-    wh_ratio = 1000 / 700
-    w = 1000
-    fig.update_layout(title_text='Event map',
-                      # title_automargin=True,
-                      width=w, height=w / wh_ratio,
-                      )
-    # fig.update_traces(showlegend=False)
-
-    # Filter by team and events
-    df_f = df[df['team'] == team]
-    df_f = df_f[df_f['type'].isin(events)]
-
-    # Plot markers by player
-    for p in players:
-        c = get_color(players, p)
-        dff = df_f[df_f['player'] == p]
-        # Iter over all events for selected player
-        for i, event in enumerate(dff.iterrows()):
-            event = event[1]
-            x = event['x']
-            y = event['y']
-            end_x = event['end_x']
-            end_y = event['end_y']
-            if event['type'] == 'Goal':
-                fig = fig.add_scatter(x=[x, end_x],
-                                      y=[y, end_y],
-                                      name=p,
-                                      mode="lines+markers",
-                                      legendgroup=p,
-                                      customdata=np.stack([event['type']]),
-                                      # Styling
-                                      marker_size=8, marker_color=c,
-                                      # marker_symbol='x',
-                                      # marker_opacity=0.5,
-                                      # opacity=0.5,
-                                      line_color='white', line_dash='dot',
-                                      showlegend=False
-                                      )
-            else:
-                fig = fig.add_scatter(x=[x, end_x],
-                                      y=[y, end_y],
-                                      name=p,
-                                      mode="lines+markers",
-                                      legendgroup=p,
-                                      customdata=np.stack([event['type']]),
-                                      # Styling
-                                      marker_size=8, marker_color=c,
-                                      marker_symbol='x',
-                                      # marker_opacity=0.5,
-                                      # opacity=0.5,
-                                      line_color='white', line_dash='dot',
-                                      showlegend=False
-                                      )
-            # Only add label to first marker of each shot type
-            if i == 0:
-                fig.update_traces(showlegend=True, selector=dict(legendgroup=p))
-
-    # Style - Goals
-    # fig.update_traces(selector=dict(type="scatter"),
-    #                   patch=dict(
-    #                       marker=dict(symbol='x',
-    #                                   ),
-    #                       # line=dict(color='red'
-    #                       #           )
-    #                   )
-    #                   )
-
-    return fig
+# ---------------------------------------------------- CALLBACKS ------------------------------------------------------
 
 
 # Update player dropdown options based on team chosen
@@ -281,6 +199,100 @@ def update_value(team):
             thi_goals = goals
             third_gs = player
     return [max_goalscorer, sec_gs, third_gs]
+
+
+# ------------------------------------- CALLBACK: MAIN SCATTER PLOT --------------------------------------------------
+@app.callback(
+    Output('scatter-plot', 'figure'),
+    [Input('event-checklist', 'value'),
+     Input('player-checklist', 'value'),
+     Input('team-checklist', 'value'),
+     Input('plot-filter-checklist', 'value'), ]
+)
+def update_scatter(events, players, team, filter_list):
+    pitch = Pitch()
+    fig = pitch.plot_pitch(show=False)
+    wh_ratio = 1000 / 700
+    w = 1000
+    fig.update_layout(title_text='Event map',
+                      # title_automargin=True,
+                      width=w, height=w / wh_ratio,
+                      )
+    # fig.update_traces(showlegend=False)
+
+    # Filter by team and events
+    df_f = df[df['team'] == team]
+    df_f = df_f[df_f['type'].isin(events)]
+
+    if 'plot_dots' in filter_list:
+        # Plot markers by player
+        for p in players:
+            c = get_color(players, p)
+            dff = df_f[df_f['player'] == p]
+            # Iter over all events for selected player
+            for i, event in enumerate(dff.iterrows()):
+                event = event[1]
+                x = event['x']
+                y = event['y']
+                end_x = event['end_x']
+                end_y = event['end_y']
+                if event['type'] == 'Goal':
+                    fig = fig.add_scatter(x=[x, end_x],
+                                          y=[y, end_y],
+                                          name=p,
+                                          mode="lines+markers",
+                                          legendgroup=p,
+                                          customdata=np.stack([event['type']]),
+                                          # Styling
+                                          marker_size=8, marker_color=c,
+                                          # marker_symbol='x',
+                                          # marker_opacity=0.5,
+                                          # opacity=0.5,
+                                          line_color='white', line_dash='dot',
+                                          showlegend=False
+                                          )
+
+                else:
+                    fig = fig.add_scatter(x=[x, end_x],
+                                          y=[y, end_y],
+                                          name=p,
+                                          mode="lines+markers",
+                                          legendgroup=p,
+                                          customdata=np.stack([event['type']]),
+                                          # Styling
+                                          marker_size=8, marker_color=c,
+                                          marker_symbol='x',
+                                          # marker_opacity=0.5,
+                                          # opacity=0.5,
+                                          line_color='white', line_dash='dot',
+                                          showlegend=False
+                                          )
+                # Only add label to first marker of each shot type
+                if i == 0:
+                    fig.update_traces(showlegend=True, selector=dict(legendgroup=p))
+
+    if 'plot_hm' in filter_list:
+        yl = 68
+        xl = 106
+
+        y_num = 6
+        x_num = 12
+
+        hist_df = df_f[df_f['player'].isin(players)]
+        fig.add_trace(go.Histogram2d(x=hist_df['x'],
+                                     y=hist_df['y'],
+                                     # colorscale='YlGn',
+                                     colorscale='Greens',
+                                     opacity=0.8,
+                                     # zmax=10,
+                                     # nbinsx=9,
+                                     # nbinsy=9,
+                                     ybins=dict(start=-34, end=34, size=yl / y_num),
+                                     xbins=dict(start=-53, end=53, size=xl / x_num),
+                                     zauto=False,
+                                     ))
+
+    return fig
 
 
 # Run the app
