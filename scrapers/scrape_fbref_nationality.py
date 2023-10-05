@@ -71,7 +71,7 @@ if today.day < 10:
 else:
     dia = f'{today.day}'
 
-hoy = f'{today.year}-{mes}-{dia}' # Today's date in dataframe's format
+hoy = f'{today.year}-{mes}-{dia}'  # Today's date in dataframe's format
 
 
 fixtures_today = fixtures[fixtures['Fecha'] == hoy]
@@ -117,6 +117,8 @@ competitions = [{'name': 'Champions Lg', 'url': url_c1},
 
 cups = []
 for cup in competitions:
+    player_data = []
+
     driver.get(cup['url'])
     # Get column names
     thead = driver.find_element(By.XPATH, '//*[@id="nations"]/thead')
@@ -146,13 +148,18 @@ for cup in competitions:
                 country_players.append(name)
                 country_url.append(player_url)
 
+    player_data = pd.DataFrame({'Jugador': country_players, 'Jugador_url': country_url})
+
     # Iterate through players profile url to get their teams profile url
     teams_url = []
     team_name = []
     for url in country_url:
         driver.get(url)
         for p in driver.find_elements(By.XPATH, '//*[@id="meta"]/div/p'):
+
             for strong in p.find_elements(By.XPATH, './/strong'):
+
+                # if strong.text == 'Nacimiento:':
 
                 # Get club name and club profile URL
                 if strong.text == 'Club :':
@@ -163,10 +170,15 @@ for cup in competitions:
                     print(f'{cup["name"]} urls: {team_url}')
                     # teams_url.append(p.find_element(By.XPATH, './/a').get_attribute('href'))
 
+    player_data['Equipo'] = team_name
+    player_data['Equipo_url'] = teams_url
+
     cup_data = []
     team_data = []
+    drop_rows = []
     # Iterate through teams profiles to check if they play cup today
-    for i, url in enumerate(teams_url):
+    for i, df_row in player_data.iterrows():
+        url = df_row['Equipo_url']
         driver.get(url)
         # Iter rows and check date and comp
         for tr in driver.find_elements(By.XPATH, '//*[@id="matchlogs_for"]/tbody/tr[not(contains(@class, "thead rowSum"))]'):
@@ -196,21 +208,46 @@ for cup in competitions:
             team_data.append(pd.Series(data))
         else:
             print(f'{cup["name"]}: NO')
-    #
+            drop_rows.append(i)
+
+    # Eliminate players that are not playing today from df
+    player_data = player_data.drop(drop_rows)
+
+    # Create df with match data if any player is playing today
     if len(team_data) > 0:
+        # Create dataframe of matches data
         cup_data = pd.concat(team_data, axis=1, ignore_index=True).T
         cup_data.columns = cols
-        cup_data.insert(0, 'Jugador', country_players)
-        cup_data.insert(1, 'Equipo', team_name)
-        cups.append(cup_data)
+
+        # Concatenate df with matches data
+        player_data = pd.concat([player_data, cup_data], axis=1)
+
+        # Append to cups list of dataframes
+        cups.append(player_data)
+
+# Time to print Tweet
 
 
 for cup in cups:
     tweet = [f'\n{cup.Comp[0]}:\n']
     for row in cup.itertuples():
-        j = row.Jugador
-        t = row.Equipo
-        tweet.append(f'{j} - {t}\n')
+        jug = row.Jugador
+        equipo = row.Equipo
+        hora = row.Hora
+        rival = ' '.join(row.Adversario.split()[1:])
+
+        flag_riv = row.Adversario.split()[0]
+        if flag_riv[:3] == 'eng':
+            flag_riv = '🏴󠁧󠁢󠁥󠁮󠁧󠁿'
+        else:
+            flag_riv = flag.flag(f'{flag_riv[:2]}')
+
+        if equipo == "Eintracht Frankfurt":
+            equipo = f'🇩🇪'+equipo
+        elif equipo == 'Leverkusen':
+            equipo = f'🇩🇪'+equipo
+
+        tweet.append(f'{hora} - {jug} - {equipo} vs {flag_riv}{rival}\n')
 
     tweet = ''.join(tweet)
     print(tweet)
