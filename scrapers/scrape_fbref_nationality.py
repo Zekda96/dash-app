@@ -243,9 +243,23 @@ for cup in cups:
             flag_riv = flag.flag(f'{flag_riv[:2]}')
 
         if equipo == "Eintracht Frankfurt":
-            equipo = f'🇩🇪'+equipo
+            equipo = '🇩🇪' + equipo
         elif equipo == 'Leverkusen':
-            equipo = f'🇩🇪'+equipo
+            equipo = '🇩🇪' + equipo
+        elif equipo == 'Brighton & Hove Albion':
+            equipo = '🏴󠁧󠁢󠁥󠁮󠁧󠁿Brighton'
+        elif equipo == 'Rangers':
+            equipo = '🏴󠁧󠁢󠁳󠁣󠁴󠁿' + equipo
+        elif equipo == 'Union SG':
+            equipo = '󠁧󠁢󠁳🇧🇪󠁴󠁿' + equipo
+        elif equipo == 'Sparta Prague':
+            equipo = '󠁧󠁢󠁳🇨🇿' + equipo
+        elif equipo == 'Olympiacos':
+            equipo = '🇬🇷' + equipo
+        elif equipo == 'Lugano':
+            equipo = '🇨🇭' + equipo
+        elif equipo == 'Ferencváros':
+            equipo = '🇭🇺' + equipo
 
         tweet.append(f'{hora} - {jug} - {equipo} vs {flag_riv}{rival}\n')
 
