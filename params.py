@@ -2,13 +2,17 @@
 class prm:
     std = dict(
         field_color="mediumseagreen",
+        # field_color="white",
         field_markings_color="White",
         title_color="White",
     )
     pc = dict(
-        field_color="White", field_markings_color="black", title_color="black"
+        field_color="White",
+        field_markings_color="black",
+        title_color="black"
     )
 
+    plot_bg = 'mediumseagreen'  # custom
     field_width = 1000
     field_height = 700
     field_dim = (106.0, 68.0)

@@ -7,8 +7,8 @@ class Pitch:
     def __init__(self):
         # ALL DIMENSIONS IN m
         self.border_dimen = (
-            3,
-            3,
+            3, 3
+            # 0, 0
         )  # include a border arround of the field of width 3m
         self.meters_per_yard = 0.9144  # unit conversion from yards to meters
         self.half_pitch_length = prm.field_dim[0] / 2.0  # length of half pitch
@@ -48,6 +48,7 @@ class Pitch:
             field_color = prm.std["field_color"]
             title_color = prm.std["title_color"]
 
+        plot_bg = prm.plot_bg
         shapes = []
 
         mid_circle = dict(
@@ -211,31 +212,30 @@ class Pitch:
             #width=prm.field_width,
             #height=prm.field_height,
             plot_bgcolor=field_color,
+            # paper_bgcolor=plot_bg,
             xaxis=go.layout.XAxis(
                 range=[-xmax, xmax],
-                # showgrid=True,
-                # zeroline=True,
-                # showticklabels=True,
-                # visible=True,
-                showgrid=False,
-                zeroline=False,
-                showticklabels=False,
-                visible=False,
+                showgrid=True,
+                zeroline=True,
+                showticklabels=True,
+                visible=True,
+                # visible=False,
             ),
             yaxis=go.layout.YAxis(
                 range=[-ymax, ymax],
                 showgrid=True,
                 zeroline=True,
                 showticklabels=True,
-                # visible=True,
-                visible=False,
+                visible=True,
+                # visible=False,
                 scaleanchor="x",
                 scaleratio=1,
             ),
-            margin=go.layout.Margin(l=0, r=0, b=0, t=0, pad=0),
+            # margin=go.layout.Margin(l=0, r=0, b=0, t=0, pad=0),
+            # margin=go.layout.Margin(pad=0),
             legend=dict(
-                #x=0.1, y=0.993, orientation="h", bgcolor="rgba(0,0,0,0)"
-                x=0.035, y=0.055, orientation="h", bgcolor="rgba(0,0,0,0)"
+                x=0.1, y=0.993, orientation="h", bgcolor="rgba(0,0,0,0)"
+                # x=0.035, y=0.06, orientation="h", bgcolor="rgba(0,0,0,0)"
             ),
         )
 
@@ -247,6 +247,7 @@ class Pitch:
         return layout
 
     def plot_pitch(self, show=True):
+
         """Just generates an empty pitch.
         Store it in a fig object and add data to plot over it.
         """
@@ -260,3 +261,4 @@ class Pitch:
             fig.show()
 
         return fig
+

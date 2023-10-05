@@ -1,7 +1,7 @@
 import plotly.express as px
 import plotly.graph_objects as go
 import dash
-from dash import dcc, html
+from dash import dcc, html, callback
 from dash.dependencies import Input, Output
 import dash_bootstrap_components as dbc
 import pandas as pd
@@ -17,8 +17,8 @@ def get_color(players, player):
 
 
 # ------------------------------- READ DATA --------------------------------------
-
-df = pd.read_csv('ENG-Premier League/20-21/20-21.csv')
+season = '2223'
+df = pd.read_csv(f'/Users/dgranja/PycharmProjects/dash-app/ENG-Premier League/{season}/{season}.csv')
 
 # Clean dataframe
 df = df[~df['type'].isin(['Smother', 'ShieldBallOpp', 'Card'])]  # Ignore these events
@@ -39,7 +39,7 @@ plot_df.loc[:, 'end_y'] = lfd.convert_y(plot_df['end_y'], max_y=100, invert_y=Fa
 df = plot_df
 
 # Create the Dash app
-app = dash.Dash(__name__, external_stylesheets=[dbc.themes.SLATE])
+dash.register_page(__name__, path='/')
 # ------------------------------ COMPONENTS -----------------------------------
 
 event_checklist = html.Div([
@@ -104,7 +104,7 @@ plot_filter_checklist = html.Div([
 # ------------------------------ LAYOUT -----------------------------------
 
 # Layout of the app
-app.layout = dbc.Container([
+layout = dbc.Container([
 
     dbc.Row([
         dbc.Col([
@@ -163,7 +163,7 @@ app.layout = dbc.Container([
 
 
 # Update player dropdown options based on team chosen
-@app.callback(
+@callback(
     Output("player-checklist", "options"),
     Input("team-checklist", "value")
 )
@@ -177,7 +177,7 @@ def update_options(team):
 
 
 # Update player dropdown default value from chosen team top 3 goalscorers (Depending on team chosen)
-@app.callback(
+@callback(
     Output("player-checklist", "value"),
     Input("team-checklist", "value")
 )
@@ -202,7 +202,7 @@ def update_value(team):
 
 
 # ------------------------------------- CALLBACK: MAIN SCATTER PLOT --------------------------------------------------
-@app.callback(
+@callback(
     Output('scatter-plot', 'figure'),
     [Input('event-checklist', 'value'),
      Input('player-checklist', 'value'),
@@ -214,10 +214,11 @@ def update_scatter(events, players, team, filter_list):
     fig = pitch.plot_pitch(show=False)
     wh_ratio = 1000 / 700
     w = 1000
-    fig.update_layout(title_text='Event map',
-                      # title_automargin=True,
-                      width=w, height=w / wh_ratio,
-                      )
+    fig.update_layout(
+        title_text='Event map',
+        # title_automargin=True,
+        width=w, height=w / wh_ratio,
+        )
     # fig.update_traces(showlegend=False)
 
     # Filter by team and events
@@ -293,9 +294,3 @@ def update_scatter(events, players, team, filter_list):
                                      ))
 
     return fig
-
-
-# Run the app
-if __name__ == '__main__':
-    app.run(debug=True)
-    # app.run()
