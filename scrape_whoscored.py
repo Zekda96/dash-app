@@ -5,7 +5,7 @@ import pandas as pd
 import json
 
 league = 'ENG-Premier League'
-season = '20-21'
+season = '2021'
 match_id = 1485344
 
 #matches = [1485477, 1485471, 1485475]

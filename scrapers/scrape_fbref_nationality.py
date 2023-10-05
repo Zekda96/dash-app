@@ -136,8 +136,8 @@ for cup in competitions:
     # Iterate rows and find Ecuador row
     for tr in tbody.find_elements(By.XPATH, './/tr'):
         if tr.text.split()[2] == country.capitalize():
-            country_players = []
-            country_url = []
+            players = []
+            players_url = []
             print(f'\nHoy juegan por {cup["name"]}:')
             # Iterate through ecuadorean players and get their profile url
             for player in tr.find_elements(By.XPATH, './/td[4]/a'):
@@ -145,32 +145,33 @@ for cup in competitions:
                 player_url = player.get_attribute('href')
 
                 print(f'{name}')
-                country_players.append(name)
-                country_url.append(player_url)
+                players.append(name)
+                players_url.append(player_url)
 
-    player_data = pd.DataFrame({'Jugador': country_players, 'Jugador_url': country_url})
+    player_data = pd.DataFrame({'Jugador': players, 'Jugador_url': players_url})
 
     # Iterate through players profile url to get their teams profile url
     teams_url = []
-    team_name = []
-    for url in country_url:
+    teams = []
+    for url in players_url:
         driver.get(url)
         for p in driver.find_elements(By.XPATH, '//*[@id="meta"]/div/p'):
 
             for strong in p.find_elements(By.XPATH, './/strong'):
 
-                # if strong.text == 'Nacimiento:':
+                # # if strong.text == 'Nacimiento:':
+                # '//*[@id="meta"]/div[2]/p[3]/span[2]/nobr'
 
                 # Get club name and club profile URL
                 if strong.text == 'Club :':
                     a = p.find_element(By.XPATH, './/a')
                     team_url = a.get_attribute('href')
-                    team_name.append(a.text)
+                    teams.append(a.text)
                     teams_url.append(team_url)
                     print(f'{cup["name"]} urls: {team_url}')
                     # teams_url.append(p.find_element(By.XPATH, './/a').get_attribute('href'))
 
-    player_data['Equipo'] = team_name
+    player_data['Equipo'] = teams
     player_data['Equipo_url'] = teams_url
 
     cup_data = []
