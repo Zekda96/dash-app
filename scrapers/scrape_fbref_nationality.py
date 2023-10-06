@@ -62,16 +62,16 @@ fixtures.loc[:, 'Jugador'] = fixtures.Jugador.replace(to_replace='Félix Torres 
 today = date.today()
 # Standardize two digit months (01, 02, ... 10, 11, 12)
 if today.month < 10:
-    mes = f'0{today.month}'
+    today_mes = f'0{today.month}'
 else:
-    mes = f'{today.month}'
+    today_mes = f'{today.month}'
 
 if today.day < 10:
-    dia = f'0{today.day}'
+    today_dia = f'0{today.day}'
 else:
-    dia = f'{today.day}'
+    today_dia = f'{today.day}'
 
-hoy = f'{today.year}-{mes}-{dia}'  # Today's date in dataframe's format
+hoy = f'{today.year}-{today_mes}-{today_dia}'  # Today's date in dataframe's format
 
 
 fixtures_today = fixtures[fixtures['Fecha'] == hoy]
@@ -114,7 +114,6 @@ competitions = [{'name': 'Champions Lg', 'url': url_c1},
                 {'name': 'Conf Lg', 'url': url_c3}
                 ]
 
-
 cups = []
 for cup in competitions:
     player_data = []
@@ -138,7 +137,7 @@ for cup in competitions:
         if tr.text.split()[2] == country.capitalize():
             players = []
             players_url = []
-            print(f'\nHoy juegan por {cup["name"]}:')
+            print(f'\nSus equipos juegan {cup["name"]}:')
             # Iterate through ecuadorean players and get their profile url
             for player in tr.find_elements(By.XPATH, './/td[4]/a'):
                 name = player.text
@@ -150,7 +149,9 @@ for cup in competitions:
 
     player_data = pd.DataFrame({'Jugador': players, 'Jugador_url': players_url})
 
-    # Iterate through players profile url to get their teams profile url
+    # Iterate through players profile url to get data and their teams' profile url
+    age = []
+    position = []
     teams_url = []
     teams = []
     for url in players_url:
@@ -158,9 +159,15 @@ for cup in competitions:
         for p in driver.find_elements(By.XPATH, '//*[@id="meta"]/div/p'):
 
             for strong in p.find_elements(By.XPATH, './/strong'):
-
-                # # if strong.text == 'Nacimiento:':
-                # '//*[@id="meta"]/div[2]/p[3]/span[2]/nobr'
+                # Get position
+                if strong.text == 'Posición:':
+                    position.append(p.text[10:12])
+                # Get age
+                if strong.text == 'Nacimiento:':
+                    # print(f'{i} - {p.text}')
+                    # print(f'strong: "{strong.text}"')
+                    span = p.find_element(By.XPATH, './/span[2]').text
+                    age.append(span.split()[1].split('-')[0])
 
                 # Get club name and club profile URL
                 if strong.text == 'Club :':
@@ -171,6 +178,8 @@ for cup in competitions:
                     print(f'{cup["name"]} urls: {team_url}')
                     # teams_url.append(p.find_element(By.XPATH, './/a').get_attribute('href'))
 
+    player_data['Edad'] = age
+    player_data['Posicion'] = position
     player_data['Equipo'] = teams
     player_data['Equipo_url'] = teams_url
 
@@ -208,7 +217,7 @@ for cup in competitions:
         if is_today and is_cup:
             team_data.append(pd.Series(data))
         else:
-            print(f'{cup["name"]}: NO')
+            print(f'Equipo juega {cup["name"]}: NO')
             drop_rows.append(i)
 
     # Eliminate players that are not playing today from df
@@ -226,13 +235,33 @@ for cup in competitions:
         # Append to cups list of dataframes
         cups.append(player_data)
 
+# Create dataframe
+cups_df = pd.concat(cups)
+cups_df['Comp'] = pd.Categorical(cups_df['Comp'], ["Champions Lg", "Europa Lg", "Conf Lg"])
+cups_df = cups_df.sort_values(['Comp', 'Hora']).reset_index(drop=True)
+
+# Fix position names
+cups_df.loc[:, 'Posicion'] = cups_df.Posicion.replace(to_replace='CC', value='MC')
+cups_df.loc[:, 'Posicion'] = cups_df.Posicion.replace(to_replace='DF,CC', value='DF/MC')
+cups_df.loc[:, 'Posicion'] = cups_df.Posicion.replace(to_replace='DL,CC', value='DL/MC')
+
+cups_df.loc[:, 'Jugador'] = cups_df.Jugador.replace(to_replace='Félix Torres Caicedo', value='Félix Torres')
+
+# Format time
+time_matches = cups_df.Hora.str.split('(', expand=True)
+for i, row in time_matches.iterrows():
+    if row[1] is not None:
+        time_matches.loc[i, :] = row[1][:-1]
+
+cups_df.loc[:, 'Hora'] = time_matches[0]
+
 # Time to print Tweet
-
-
-for cup in cups:
-    tweet = [f'\n{cup.Comp[0]}:\n']
-    for row in cup.itertuples():
+for cup in competitions:
+    tweet = [f'{cup["name"]}:\n']
+    for row in cups_df[cups_df['Comp'] == cup['name']].itertuples():
         jug = row.Jugador
+        edad = row.Edad
+        posc = row.Posicion
         equipo = row.Equipo
         hora = row.Hora
         rival = ' '.join(row.Adversario.split()[1:])
@@ -262,8 +291,7 @@ for cup in cups:
         elif equipo == 'Ferencváros':
             equipo = '🇭🇺' + equipo
 
-        tweet.append(f'{hora} - {jug} - {equipo} vs {flag_riv}{rival}\n')
+        tweet.append(f'{hora} - {jug} ({edad} - {posc}) - {equipo} vs {flag_riv}{rival}\n')
 
     tweet = ''.join(tweet)
     print(tweet)
-
