@@ -4,7 +4,7 @@ import os
 import pandas as pd
 
 league = "ENG-Premier League"
-season = '2223'
+season = '20-21'
 stats_list = ['possession', 'defense']
 stats = 'possession'
 

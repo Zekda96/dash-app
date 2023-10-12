@@ -7,9 +7,9 @@ from selenium.webdriver.firefox.options import Options
 
 # --------------------------------------- INPUT ----------------------------
 # Filepath of fbref stats file to add positions columns
-og_fp = '/Users/dgranja/PycharmProjects/dash-app/ENG-Premier League/2223/2223_fbref_defense.csv'
+og_fp = '/Users/dgranja/PycharmProjects/dash-app/ENG-Premier League/22-23/22-23_fbref_stats.csv'
 # Filepath of output file to save positions separately
-positions_output = '/Users/dgranja/PycharmProjects/dash-app/ENG-Premier League/2223/2223_fbref_positions.csv'
+positions_output = '/Users/dgranja/PycharmProjects/dash-app/ENG-Premier League/22-23/22-23_fbref_positions.csv'
 # Season and league stats fbref link
 url = 'https://fbref.com/en/comps/9/2022-2023/stats/2022-2023-Premier-League-Stats'
 # Code from fbref link from player scouting report - EPL 2223

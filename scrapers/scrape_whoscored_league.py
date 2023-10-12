@@ -5,7 +5,7 @@ import pandas as pd
 import json
 
 league = 'ENG-Premier League'
-season = '2223'
+season = '2223'  # Season as 22/23
 
 # Read season
 print('Reading season - ')
