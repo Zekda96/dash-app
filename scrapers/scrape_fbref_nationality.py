@@ -7,13 +7,28 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.firefox.options import Options
 import flag
 
+# ---------------------------- INPUT ----------------------
 country = 'ECUADOR'
 
 # fbref table link
 url = 'https://fbref.com/es/stathead/scout/ECU'
 
-results = pd.read_html(url)[0]  # Player stats
+# Get today's date
+today = date.today()
+# Standardize two digit months (01, 02, ... 10, 11, 12)
+if today.month < 10:
+    today_mes = f'0{today.month}'
+else:
+    today_mes = f'{today.month}'
 
+if today.day < 10:
+    today_dia = f'0{today.day}'
+else:
+    today_dia = f'{today.day}'
+
+hoy = f'{today.year}-{today_mes}-{today_dia}'  # Today's date in dataframe's format
+
+# -------------------------------- CODE ----------------------
 # Selenium for fixtures
 
 driver = webdriver.Firefox(options=Options())
@@ -56,23 +71,6 @@ fixtures.loc[:, 'Posc'] = fixtures.Posc.replace(to_replace='DF,CC', value='DF/MC
 fixtures.loc[:, 'Posc'] = fixtures.Posc.replace(to_replace='DL,CC', value='DL/MC')
 
 fixtures.loc[:, 'Jugador'] = fixtures.Jugador.replace(to_replace='Félix Torres Caicedo', value='Félix Torres')
-
-
-# Get today's date
-today = date.today()
-# Standardize two digit months (01, 02, ... 10, 11, 12)
-if today.month < 10:
-    today_mes = f'0{today.month}'
-else:
-    today_mes = f'{today.month}'
-
-if today.day < 10:
-    today_dia = f'0{today.day}'
-else:
-    today_dia = f'{today.day}'
-
-hoy = f'{today.year}-{today_mes}-{today_dia}'  # Today's date in dataframe's format
-
 
 fixtures_today = fixtures[fixtures['Fecha'] == hoy]
 fixtures_today = fixtures_today.sort_values(by='Hora')
@@ -175,8 +173,7 @@ for cup in competitions:
                     team_url = a.get_attribute('href')
                     teams.append(a.text)
                     teams_url.append(team_url)
-                    print(f'{cup["name"]} urls: {team_url}')
-                    # teams_url.append(p.find_element(By.XPATH, './/a').get_attribute('href'))
+                    # print(f'{cup["name"]} urls: {team_url}')
 
     player_data['Edad'] = age
     player_data['Posicion'] = position
@@ -189,6 +186,8 @@ for cup in competitions:
     # Iterate through teams profiles to check if they play cup today
     for i, df_row in player_data.iterrows():
         url = df_row['Equipo_url']
+        jugador = player_data.loc[i, "Jugador"]
+        equipo = player_data.loc[i, "Equipo"]
         driver.get(url)
         # Iter rows and check date and comp
         for tr in driver.find_elements(By.XPATH, '//*[@id="matchlogs_for"]/tbody/tr[not(contains(@class, "thead rowSum"))]'):
@@ -198,7 +197,7 @@ for cup in competitions:
                 is_today = tr.find_element(By.XPATH, './/th').text == hoy
                 is_cup = tr.find_element(By.XPATH, './/td[2]').text == cup['name']
                 if is_today and is_cup:
-                    print(f'{cup["name"]}: YES')
+                    print(f'{jugador} - {equipo} - {cup["name"]}: YES')
                     data = []
                     cols = []
                     for d in tr.find_elements(By.XPATH, './/td'):
@@ -217,7 +216,7 @@ for cup in competitions:
         if is_today and is_cup:
             team_data.append(pd.Series(data))
         else:
-            print(f'Equipo juega {cup["name"]}: NO')
+            print(f'{jugador} - {equipo} juega {cup["name"]}: NO')
             drop_rows.append(i)
 
     # Eliminate players that are not playing today from df
@@ -236,62 +235,73 @@ for cup in competitions:
         cups.append(player_data)
 
 # Create dataframe
-cups_df = pd.concat(cups)
-cups_df['Comp'] = pd.Categorical(cups_df['Comp'], ["Champions Lg", "Europa Lg", "Conf Lg"])
-cups_df = cups_df.sort_values(['Comp', 'Hora']).reset_index(drop=True)
+if len(cups) > 0:
+    cups_df = pd.concat(cups)
+    cups_df['Comp'] = pd.Categorical(cups_df['Comp'], ["Champions Lg", "Europa Lg", "Conf Lg"])
+    cups_df = cups_df.sort_values(['Comp', 'Hora']).reset_index(drop=True)
 
-# Fix position names
-cups_df.loc[:, 'Posicion'] = cups_df.Posicion.replace(to_replace='CC', value='MC')
-cups_df.loc[:, 'Posicion'] = cups_df.Posicion.replace(to_replace='DF,CC', value='DF/MC')
-cups_df.loc[:, 'Posicion'] = cups_df.Posicion.replace(to_replace='DL,CC', value='DL/MC')
+    # Fix position names
+    cups_df.loc[:, 'Posicion'] = cups_df.Posicion.replace(to_replace='CC', value='MC')
+    cups_df.loc[:, 'Posicion'] = cups_df.Posicion.replace(to_replace='DF,CC', value='DF/MC')
+    cups_df.loc[:, 'Posicion'] = cups_df.Posicion.replace(to_replace='DL,CC', value='DL/MC')
 
-cups_df.loc[:, 'Jugador'] = cups_df.Jugador.replace(to_replace='Félix Torres Caicedo', value='Félix Torres')
+    cups_df.loc[:, 'Jugador'] = cups_df.Jugador.replace(to_replace='Félix Torres Caicedo', value='Félix Torres')
 
-# Format time
-time_matches = cups_df.Hora.str.split('(', expand=True)
-for i, row in time_matches.iterrows():
-    if row[1] is not None:
-        time_matches.loc[i, :] = row[1][:-1]
+    # Format time
+    time_matches = cups_df.Hora.str.split('(', expand=True)
+    for i, row in time_matches.iterrows():
+        if row[1] is not None:
+            time_matches.loc[i, :] = row[1][:-1]
 
-cups_df.loc[:, 'Hora'] = time_matches[0]
+    cups_df.loc[:, 'Hora'] = time_matches[0]
 
-# Time to print Tweet
-for cup in competitions:
-    tweet = [f'{cup["name"]}:\n']
-    for row in cups_df[cups_df['Comp'] == cup['name']].itertuples():
-        jug = row.Jugador
-        edad = row.Edad
-        posc = row.Posicion
-        equipo = row.Equipo
-        hora = row.Hora
-        rival = ' '.join(row.Adversario.split()[1:])
+    # Time to print Tweet
+    for cup in competitions:
+        print(cup["name"])
+        if cup["name"] == 'Champions Lg':
+            torneo = 'Champions League🔵️⚪'
+        elif cup["name"] == 'Europa Lg':
+            torneo = 'Europa League 🟠⚫'
+        elif cup["name"] == 'Conf Lg':
+            torneo = 'Conference League 🟢⚫'
 
-        flag_riv = row.Adversario.split()[0]
-        if flag_riv[:3] == 'eng':
-            flag_riv = '🏴󠁧󠁢󠁥󠁮󠁧󠁿'
-        else:
-            flag_riv = flag.flag(f'{flag_riv[:2]}')
+        tweet = [f'{torneo}:\n']
+        for row in cups_df[cups_df['Comp'] == cup['name']].itertuples():
+            jug = row.Jugador
+            edad = row.Edad
+            posc = row.Posicion
+            equipo = row.Equipo
+            hora = row.Hora
+            rival = ' '.join(row.Adversario.split()[1:])
 
-        if equipo == "Eintracht Frankfurt":
-            equipo = '🇩🇪' + equipo
-        elif equipo == 'Leverkusen':
-            equipo = '🇩🇪' + equipo
-        elif equipo == 'Brighton & Hove Albion':
-            equipo = '🏴󠁧󠁢󠁥󠁮󠁧󠁿Brighton'
-        elif equipo == 'Rangers':
-            equipo = '🏴󠁧󠁢󠁳󠁣󠁴󠁿' + equipo
-        elif equipo == 'Union SG':
-            equipo = '󠁧󠁢󠁳🇧🇪󠁴󠁿' + equipo
-        elif equipo == 'Sparta Prague':
-            equipo = '󠁧󠁢󠁳🇨🇿' + equipo
-        elif equipo == 'Olympiacos':
-            equipo = '🇬🇷' + equipo
-        elif equipo == 'Lugano':
-            equipo = '🇨🇭' + equipo
-        elif equipo == 'Ferencváros':
-            equipo = '🇭🇺' + equipo
+            flag_riv = row.Adversario.split()[0]
+            if flag_riv[:3] == 'eng':
+                flag_riv = '🏴󠁧󠁢󠁥󠁮󠁧󠁿'
+            else:
+                flag_riv = flag.flag(f'{flag_riv[:2]}')
 
-        tweet.append(f'{hora} - {jug} ({edad} - {posc}) - {equipo} vs {flag_riv}{rival}\n')
+            if equipo == "Eintracht Frankfurt":
+                equipo = '🇩🇪' + equipo
+            elif equipo == 'Leverkusen':
+                equipo = '🇩🇪' + equipo
+            elif equipo == 'Brighton & Hove Albion':
+                equipo = '🏴󠁧󠁢󠁥󠁮󠁧󠁿Brighton'
+            elif equipo == 'Rangers':
+                equipo = '🏴󠁧󠁢󠁳󠁣󠁴󠁿' + equipo
+            elif equipo == 'Union SG':
+                equipo = '󠁧󠁢󠁳🇧🇪󠁴󠁿' + equipo
+            elif equipo == 'Sparta Prague':
+                equipo = '󠁧󠁢󠁳🇨🇿' + equipo
+            elif equipo == 'Olympiacos':
+                equipo = '🇬🇷' + equipo
+            elif equipo == 'Lugano':
+                equipo = '🇨🇭' + equipo
+            elif equipo == 'Ferencváros':
+                equipo = '🇭🇺' + equipo
 
-    tweet = ''.join(tweet)
-    print(tweet)
+            tweet.append(f'{hora} - {jug} ({edad} - {posc}) - {equipo} vs {flag_riv}{rival}\n')
+
+        tweet = ''.join(tweet)
+        print(tweet)
+else:
+    print('\nNo es dia de copas')
