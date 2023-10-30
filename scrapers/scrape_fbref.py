@@ -210,27 +210,33 @@ df = df.rename(
         'Blocks': 'PassesBlocked',
     }
 )
-#
-#     elif stat == 'goal_shot_creation':
-#         df = df.rename(
-#             columns={'SCA': 'SCA',
-#                      'SCA90': 'SCA90',
-#                      'PassLive': 'SCAPassLive',
-#                      'PassDead': 'SCAPassDead',
-#                      'TO': 'SCADrib',
-#                      'Sh': 'SCASh',
-#                      'Fld': 'SCAFld',
-#                      'Def': 'SCADef',
-#                      'GCA': 'GCA',
-#                      'GCA90': 'GCA90',
-#                      'PassLive': 'GCAPassLive',
-#                      'PassDead': 'GCAPassDead',
-#                      'TO': 'GCADrib',
-#                      'Sh': 'GCASh',
-#                      'Fld': 'GCAFld',
-#                      'Def': 'GCADef'
-#                      }
-#         )
+# --------------------- Goal & Shot Creation Actions --------------------------
+df = df.join(df_gsca.iloc[:, 9:17])  # Get SCA stats
+df = df.rename(
+    columns={
+        'SCA': 'SCA',
+        'SCA90': 'SCA90',
+        'PassLive': 'SCAPassLive',
+        'PassDead': 'SCAPassDead',
+        'TO': 'SCADrib',
+        'Sh': 'SCASh',
+        'Fld': 'SCAFld',
+        'Def': 'SCADef',
+    }
+)
+df = df.join(df_gsca.iloc[:, 17:25])  # Get GCA stats
+df = df.rename(
+    columns={
+        'GCA': 'GCA',
+        'GCA90': 'GCA90',
+        'PassLive': 'GCAPassLive',
+        'PassDead': 'GCAPassDead',
+        'TO': 'GCADrib',
+        'Sh': 'GCASh',
+        'Fld': 'GCAFld',
+        'Def': 'GCADef'
+    }
+)
 #
 #     elif stat == 'defense':
 #         df = df.rename(
