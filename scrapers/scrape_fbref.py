@@ -80,6 +80,30 @@ def get_data_passing_types():
     return df1
 
 
+def get_data_defense():
+    print(f'Saving [defense]')
+    df_stats = fbref.read_player_season_stats(stat_type='defense')
+    # Save and read csv to extend multi-index into columns
+    df_stats.to_csv('fbref_stats.csv')
+    df1 = pd.read_csv('fbref_stats.csv')
+    os.remove('fbref_stats.csv')
+
+    # Multi-index splits into several rows. Grab all column names and put them
+    # together
+    #
+    # Some are in row 1
+    player_data = df1.iloc[1, :4].reset_index(drop=True).tolist()
+    # Some stayed as a column name
+    matches = df1.columns[4:9].tolist()
+    stats2 = df1.columns[21:25].tolist()
+    # And other are on row 0
+    stats1 = df1.iloc[0, 9:21].reset_index(drop=True).tolist()
+    # Ignore first 2 rows since they don't contain data
+    df1 = df1.loc[2:, :]
+    df1.columns = player_data + matches + stats1 + stats2
+    df1 = df1.reset_index(drop=True)
+    return df1
+
 league = "ENG-Premier League"
 season = '22-23'
 stats_list = ["standard", 'shooting', "passing", "passing_types",
@@ -105,7 +129,7 @@ df_shooting = get_data('shooting')
 df_passing = get_data_passing()
 df_passing_types = get_data_passing_types()
 df_gsca = get_data('goal_shot_creation')
-df_defense = get_data('defense')
+df_defense = get_data_defense()
 df_possession = get_data('possession')
 df_misc = get_data('misc')
 
@@ -237,27 +261,35 @@ df = df.rename(
         'Def': 'GCADef'
     }
 )
-#
-#     elif stat == 'defense':
-#         df = df.rename(
-#             columns={'Tkl': 'Tkl',
-#                      'TklW': 'TklWinPoss',
-#                      'Def 3rd': 'Def3rdTkl',
-#                      'Mid 3rd': 'Mid3rdTkl',
-#                      'Att 3rd': 'Att3rdTkl',
-#                      'Tkl': 'DrbTkl',
-#                      'Att': 'DrbPastAtt',
-#                      'Tkl%': 'DrbTkl%',
-#                      'Lost': 'DrbPast',
-#                      'Blocks': 'Blocks',
-#                      'Sh': 'ShBlocks',
-#                      'Pass': 'PassBlocks',
-#                      'Int': 'Int',
-#                      'Tkl+Int': 'Tkl+Int',
-#                      'Clr': 'Clr',
-#                      'Err': 'Err'
-#                      }
-#         )
+# ------------------------------ Defense --------------------------------------
+df = df.join(
+    df_defense.iloc[:, 9:14].rename(
+        columns={
+            'Tkl': 'Tkl',
+             'TklW': 'TklWinPoss',
+             'Def 3rd': 'Def3rdTkl',
+             'Mid 3rd': 'Mid3rdTkl',
+             'Att 3rd': 'Att3rdTkl',
+        }
+    )
+)
+df = df.join(
+    df_defense.iloc[:, 14:25].rename(
+        columns={
+             'Tkl': 'DrbTkl',
+             'Att': 'DrbPastAtt',  # DrbPastAtt = DrbPast + DrbTkl
+             'Tkl%': 'DrbTkl%',
+             'Lost': 'DrbPast',
+             'Blocks': 'Blocks',
+             'Sh': 'ShBlocks',
+             'Pass': 'PassBlocks',
+             'Int': 'Int',
+             'Tkl+Int': 'Tkl+Int',
+             'Clr': 'Clr',
+             'Err': 'Err',
+         }
+    )
+)
 #
 #     elif stat == 'possession':
 #         df = df.rename(
@@ -369,7 +401,7 @@ df = df.rename(
 # df2 = pd.concat(stats_series, axis=1).reset_index(drop=True)
 #
 
-df2.to_csv(f'{season_fp}', index=False)
+df.to_csv(f'{season_fp}', index=False)
 print(f'Saved to {season_fp}')
 # pickle_fp = f'{season_fp[:-4]}.pkl'
 # df2.to_pickle(pickle_fp)
